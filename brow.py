@@ -17,6 +17,10 @@ class URL:
             url = url + "/"
 
         self.host, url = url.split("/", 1)
+        if ":" in self.host:
+            self.host, port = self.host.split(":", 1)
+            self.port = int(port)
+
         self.path = "/" + url
 
     def request(self):
@@ -29,6 +33,10 @@ class URL:
 
         if self.scheme == "https":
             ctx = ssl.create_default_context()
+            # this creates a new socket
+            # but we reassign it, because if the connection
+            # is encrypted, it doesn't make any sense to keep
+            # using the old socket
             s = ctx.wrap_socket(s, server_hostname=self.host)
 
         request = "GET {} HTTP/1.0\r\n".format(self.path)
@@ -50,6 +58,7 @@ class URL:
             header, value = line.split(":", 1)
             response_headers[header.casefold()] = value.strip()
 
+        # make sure this headers (special cases) are not present
         assert "transfer-encoding" not in response_headers
         assert "content-encoding" not in response_headers
 
