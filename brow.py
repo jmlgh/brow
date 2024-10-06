@@ -37,6 +37,7 @@ class URL:
             # but we reassign it, because if the connection
             # is encrypted, it doesn't make any sense to keep
             # using the old socket
+            # server_hostname should match the Host request header
             s = ctx.wrap_socket(s, server_hostname=self.host)
 
         request = "GET {} HTTP/1.0\r\n".format(self.path)
