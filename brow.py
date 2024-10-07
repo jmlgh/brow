@@ -2,6 +2,32 @@ import socket
 import ssl
 
 
+class BrowRequestBuilder:
+    def __init__(self, host, path, verb="GET", encoding="utf8"):
+        self.host = host
+        self.path = path
+        self.verb = verb
+        self.encoding = encoding
+        self.httpVersion = "HTTP/1.1"
+        self.headers = {
+            "Host":         self.host,
+            "Connection":   "close",
+        }
+
+    def add_header(self, key, val):
+        self.headers[key] = val
+
+    def build_request(self):
+        assert self.host != ""
+        assert self.path != ""
+        request = "{} {} {}\r\n".format(self.verb, self.path, self.httpVersion)
+        for k, v in self.headers.items():
+            request += "{}: {}\r\n".format(k, v)
+        request += "\r\n"
+        print(request)
+        return request.encode(self.encoding)
+
+
 class URL:
     def __init__(self, url):
         # http://example.org
@@ -40,17 +66,16 @@ class URL:
             # server_hostname should match the Host request header
             s = ctx.wrap_socket(s, server_hostname=self.host)
 
-        request = "GET {} HTTP/1.0\r\n".format(self.path)
-        request += "Host: {}\r\n".format(self.host)
-        request += "\r\n"
-        s.send(request.encode("utf8"))
+        request_builder = BrowRequestBuilder(self.host, self.path)
+        request_builder.add_header("User-Agent", "brow-user")
+        s.send(request_builder.build_request())
 
         response = s.makefile("r", encoding="utf-8", newline="\r\n")
         # status line
         statusline = response.readline()
         version, status, explanation = statusline.split(" ", 2)
 
-        # headers
+        # response headers
         response_headers = {}
         while True:
             line = response.readline()
@@ -67,6 +92,9 @@ class URL:
         content = response.read()
         s.close()
         return content
+
+    def add_header(self, val):
+        self.head
 
 
 def show(body):
