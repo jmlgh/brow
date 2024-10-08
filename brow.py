@@ -38,35 +38,53 @@ class FileGrabber:
             return f.read()
 
 
+class DataParser:
+    def __init__(self, url):
+        self.url = url
+        assert self.url != ""
+
+    def parse(self):
+        data_type, data = self.url.split(",", 1)
+        match data_type:
+            case "text/html":
+                return self.parse_html(data)
+
+    def parse_html(self, data):
+        content = data
+        return content
+
+
 class URL:
     def __init__(self, url):
-        # http://example.org
-        self.scheme, url = url.split("://", 1)
-        assert self.scheme in ["http", "https", "file"]
+        self.scheme, url = url.split(":", 1)
+        # for http(s)/file schemes
+        if "//" in url:
+            _, url = url.split('//', 1)
 
-        if self.scheme != "file":
-            if self.scheme == "http":
-                self.port = 80
-            elif self.scheme == "https":
-                self.port = 443
+        assert self.scheme in ["http", "https", "file", "data"]
 
+        if self.scheme == "file":
+            self.file_grabber = FileGrabber(url)
+        elif self.scheme == "data":
+            self.data_parser = DataParser(url)
+        elif self.scheme == "http" or self.scheme == "https":
+            self.port = 443 if self.scheme == "https" else 443
             if "/" not in url:
                 url = url + "/"
-
             self.host, url = url.split("/", 1)
             if ":" in self.host:
                 self.host, port = self.host.split(":", 1)
                 self.port = int(port)
-
             self.path = "/" + url
-        else:
-            self.file_grabber = FileGrabber(url)
 
     def request(self):
         if self.scheme == "file":
             content = self.file_grabber.grab()
             return content
-        else:
+        elif self.scheme == "data":
+            content = self.data_parser.parse()
+            return content
+        elif self.scheme == "http" or self.scheme == "https":
             s = socket.socket(
                 family=socket.AF_INET,
                 type=socket.SOCK_STREAM,
